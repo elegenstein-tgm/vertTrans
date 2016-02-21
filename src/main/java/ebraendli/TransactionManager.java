@@ -1,35 +1,85 @@
 package ebraendli;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 
 /**
  * Created by fusions on 21.02.16.
  */
 public class TransactionManager {
-    private HashMap<String,String> stations = new HashMap<String,String>();
+    private HashMap<String, String> stations = new HashMap<String, String>();
+    public boolean isListening = true;
 
 
-    public TransactionManager(){
+    public TransactionManager() {
 
     }
 
-    public boolean prepare(String sql){
+    public void prepare(String sql) {
         Iterator<String> iter = stations.keySet().iterator();
 
         /**
          * Cleans the last transaction logs
          */
-        while (iter.hasNext()){
-            stations.put(iter.next(),"");
+        while (iter.hasNext()) {
+            stations.put(iter.next(), "");
         }
 
         iter = stations.keySet().iterator();
 
+        if (sql.contains("commit;")) {
+            sql.replace("commit;", "");
+        }
+        if (sql.contains("begin;")) {
+            sql.replace("begin;", "");
+        }
+
         while (iter.hasNext()) {
-            ComIPC.send()
+            ComIPC.send(iter.next(), ConstraintsAndUtils.COM_PORT, sql);
         }
     }
 
+    public boolean waitAndCheck(long milisecToWait){
+        try {
+            Thread.sleep(milisecToWait);
+            Iterator<String> iter = stations.keySet().iterator();
+            int iok= 0;
+            while (iter.hasNext()){
+                String tmp = iter.next();
+                if (stations.get(tmp).equals("ready") || stations.get(tmp).equals("ack"))
+                    iok++;
+            }
+            if (iok == stations.size())
+                return true;
+            return false;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    class RxThread extends Thread {
+        public void run() {
+            while (isListening) try {
+                ServerSocket ss = new ServerSocket(ConstraintsAndUtils.COM_PORT);
+                Socket rx = ss.accept();
+                BufferedReader br = new BufferedReader(new InputStreamReader(rx.getInputStream()));
+                String tmp, data = "";
+                while ((tmp = br.readLine()) != null) {
+                    data += tmp;
+                }
+                br.close();
+                rx.close();
+                String[] msg = ConstraintsAndUtils.convertMsg(data);
+                stations.put(msg[0], msg[2]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
