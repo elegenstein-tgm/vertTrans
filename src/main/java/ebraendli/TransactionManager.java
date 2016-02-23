@@ -28,10 +28,10 @@ public class TransactionManager {
         iter = stations.keySet().iterator();
 
         if (sql.contains("commit;")) {
-            sql.replace("commit;", "");
+            sql = sql.replace("commit;", "");
         }
         if (sql.contains("begin;")) {
-            sql.replace("begin;", "");
+            sql = sql.replace("begin;", "");
         }
 
         while (iter.hasNext()) {
