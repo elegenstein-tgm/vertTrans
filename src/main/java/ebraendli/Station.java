@@ -41,21 +41,21 @@ public class Station {
     }
 
     private void doRollback(){
-
+        //todo implement
         this.hasCurrentSql = false;
     }
 
     private void doCommit(){
-
+        //todo implement
         this.hasCurrentSql = false;
     }
 
     private void callFailed(){
-
+        ComIPC.send(ipTransMan,ConstraintsAndUtils.COM_PORT,"failed;");
     }
 
     private void callReady(){
-
+        ComIPC.send(ipTransMan,ConstraintsAndUtils.COM_PORT,"ready;");
     }
 
     private void doSql(String sql){
@@ -71,7 +71,7 @@ public class Station {
     class RxThread extends Thread{
         public void run(){
             while (isListening){
-
+                // todo implement
             }
         }
     }
