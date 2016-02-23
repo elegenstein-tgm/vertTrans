@@ -12,13 +12,8 @@ import java.util.Iterator;
  * Created by fusions on 21.02.16.
  */
 public class TransactionManager {
-    private HashMap<String, String> stations = new HashMap<String, String>();
     public boolean isListening = true;
-
-
-    public TransactionManager() {
-
-    }
+    private HashMap<String, String> stations = new HashMap<String, String>();
 
     public void prepare(String sql) {
         Iterator<String> iter = stations.keySet().iterator();
@@ -54,13 +49,31 @@ public class TransactionManager {
                 if (stations.get(tmp).equals("ready") || stations.get(tmp).equals("ack"))
                     iok++;
             }
-            if (iok == stations.size())
+            if (stations.size() == iok)
                 return true;
             return false;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public boolean doFinal() {
+        Iterator<String> iter = stations.keySet().iterator();
+        if (waitAndCheck(ConstraintsAndUtils.TIME_TO_RESPOND)) {
+            System.out.println("Doing commit!");
+            while (iter.hasNext()) {
+                ComIPC.send(iter.next(), ConstraintsAndUtils.COM_PORT, "commit;");
+            }
+            return true;
+        } else {
+            System.out.println("do abort!");
+            while (iter.hasNext()) {
+                ComIPC.send(iter.next(), ConstraintsAndUtils.COM_PORT, "abort;");
+            }
+            return false;
+        }
+
     }
 
     class RxThread extends Thread {
