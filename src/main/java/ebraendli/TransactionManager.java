@@ -14,6 +14,7 @@ import java.util.Iterator;
 public class TransactionManager {
     public boolean isListening = true;
     private HashMap<String, String> stations = new HashMap<String, String>();
+    //todo logging
 
     public void prepare(String sql) {
         Iterator<String> iter = stations.keySet().iterator();
@@ -81,6 +82,7 @@ public class TransactionManager {
             while (isListening) try {
                 ServerSocket ss = new ServerSocket(ConstraintsAndUtils.COM_PORT);
                 Socket rx = ss.accept();
+
                 BufferedReader br = new BufferedReader(new InputStreamReader(rx.getInputStream()));
                 String tmp, data = "";
                 while ((tmp = br.readLine()) != null) {
