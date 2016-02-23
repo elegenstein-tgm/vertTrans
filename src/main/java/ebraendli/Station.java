@@ -52,6 +52,10 @@ public class Station {
 
     }
 
+    public void stop(){
+        isListening = false;
+    }
+
     private void initDBCon(){
         try {
             Class.forName("org.postgresql.Driver");
@@ -139,6 +143,11 @@ public class Station {
                     br.close();
                     sock.close();
                     parseInput(ConstraintsAndUtils.convertMsg(rx)[2]);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    serverSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
