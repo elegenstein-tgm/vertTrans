@@ -1,10 +1,10 @@
 package ebraendli;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
@@ -21,6 +21,7 @@ public class Station {
     private Statement stmt;
     private Connection con;
     private PrintWriter logger;
+    private ServerSocket serverSocket;
 
 
     public Station(String IpOfTransManager){
@@ -39,6 +40,27 @@ public class Station {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        initDBCon();
+        logger.print("Setting up Socket ... ");
+        try {
+            serverSocket = new ServerSocket(ConstraintsAndUtils.COM_PORT);
+        } catch (IOException e) {
+            e.printStackTrace();
+            logger.print(e.getMessage());
+        }
+        new RxThread().start();
+
+    }
+
+    private void initDBCon(){
+        try {
+            Class.forName("org.postgresql.Driver");
+            con = DriverManager.getConnection("jdbc:postgresql:dezlab06","dezlab06","dezlab06");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void parseInput(String rxMsg){
@@ -54,6 +76,24 @@ public class Station {
         }
         logger.write(String.format("%td-%tm-%ty Got new Transaction...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
         doSql(rxMsg);
+    }
+
+    private void doSql(String sql) {
+        if (this.hasCurrentSql) {
+            callFailed();
+            return;
+        }
+        try {
+            con.setAutoCommit(false);
+            stmt = con.createStatement();
+            stmt.execute(sql);
+            logger.print(String.format("%td-%tm-%ty Waiting for Commit...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            logger.print(e.getMessage());
+        }
+        this.hasCurrentSql = true;
+        callReady();
     }
 
     private void doRollback(){
@@ -83,31 +123,25 @@ public class Station {
 
     private void callReady(){
         logger.write(String.format("%td-%tm-%ty Calling Ready...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
-        ComIPC.send(ipTransMan,ConstraintsAndUtils.COM_PORT,"ready;");
-    }
-
-    private void doSql(String sql) {
-        if (this.hasCurrentSql) {
-            callFailed();
-            return;
-        }
-        try {
-            con.setAutoCommit(false);
-            stmt = con.createStatement();
-            stmt.execute(sql);
-            logger.print(String.format("%td-%tm-%ty Waiting for Commit...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
-        } catch (SQLException e) {
-            e.printStackTrace();
-            //todo logging
-        }
-        this.hasCurrentSql = true;
-        callReady();
+        ComIPC.send(ipTransMan, ConstraintsAndUtils.COM_PORT, "ready;");
     }
 
     class RxThread extends Thread{
         public void run(){
             while (isListening){
-                // todo implement
+                try {
+                    Socket sock = serverSocket.accept();
+                    BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+                    String rx="", tmp;
+                    while ((tmp = br.readLine()) != null){
+                        rx += tmp;
+                    }
+                    br.close();
+                    sock.close();
+                    parseInput(ConstraintsAndUtils.convertMsg(rx)[2]);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
