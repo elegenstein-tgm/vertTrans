@@ -44,6 +44,7 @@ public class Station {
         logger.print("Setting up Socket ... ");
         try {
             serverSocket = new ServerSocket(ConstraintsAndUtils.COM_PORT);
+            new Socket(IpOfTransManager,ConstraintsAndUtils.COM_PORT).close();
         } catch (IOException e) {
             e.printStackTrace();
             logger.print(e.getMessage());

@@ -16,6 +16,14 @@ public class TransactionManager {
     private HashMap<String, String> stations = new HashMap<String, String>();
     //todo logging
 
+    public TransactionManager(){
+        new RxThread().start();
+    }
+    public TransactionManager(String ... ips){
+        for (int i = 0; i < ips.length; i++) {
+            stations.put(ips[i],"");
+        }
+    }
     public void prepare(String sql) {
         Iterator<String> iter = stations.keySet().iterator();
 
@@ -82,6 +90,7 @@ public class TransactionManager {
             while (isListening) try {
                 ServerSocket ss = new ServerSocket(ConstraintsAndUtils.COM_PORT);
                 Socket rx = ss.accept();
+                System.out.println("connection from "+rx.getRemoteSocketAddress().toString());
 
                 BufferedReader br = new BufferedReader(new InputStreamReader(rx.getInputStream()));
                 String tmp, data = "";
