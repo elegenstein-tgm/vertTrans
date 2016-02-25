@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="Station:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Station_jar</output-path>
+    <root id="archive" name="DistributedTransactions.jar">
+      <element id="module-output" name="DistributedTransactions" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/postgresql/postgresql/9.4-1201-jdbc4/postgresql-9.4-1201-jdbc4.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

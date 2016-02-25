@@ -44,7 +44,8 @@ public class Station {
         logger.print("Setting up Socket ... ");
         try {
             serverSocket = new ServerSocket(ConstraintsAndUtils.COM_PORT);
-            new Socket(IpOfTransManager,ConstraintsAndUtils.COM_PORT).close();
+            //serverSocket = new ServerSocket(7000);
+            //new Socket(IpOfTransManager,ConstraintsAndUtils.COM_PORT).close();
         } catch (IOException e) {
             e.printStackTrace();
             logger.print(e.getMessage());
@@ -70,24 +71,30 @@ public class Station {
 
     public void parseInput(String rxMsg){
         if (rxMsg.equals("abort;")){
+            System.out.println(String.format("%td-%tm-%ty Doing Rollback...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
             logger.write(String.format("%td-%tm-%ty Doing Rollback...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
             doRollback();
             return;
         }
         if (rxMsg.equals("commit;")){
+            System.out.println(String.format("%td-%tm-%ty Doing Commit...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
             logger.write(String.format("%td-%tm-%ty Doing Commit...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
             doCommit();
+
             return;
         }
+        System.out.println(String.format("%td-%tm-%ty Got new Transaction...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
         logger.write(String.format("%td-%tm-%ty Got new Transaction...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
         doSql(rxMsg);
     }
 
     private void doSql(String sql) {
+        /* todo uncomment
         if (this.hasCurrentSql) {
             callFailed();
             return;
         }
+        */
         try {
             con.setAutoCommit(false);
             stmt = con.createStatement();
@@ -136,6 +143,7 @@ public class Station {
             while (isListening){
                 try {
                     Socket sock = serverSocket.accept();
+                    System.out.println(sock.getRemoteSocketAddress().toString());
                     BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
                     String rx="", tmp;
                     while ((tmp = br.readLine()) != null){
@@ -147,11 +155,12 @@ public class Station {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
+            }
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }

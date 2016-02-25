@@ -9,5 +9,7 @@ public class RunTM {
             System.out.println(i+".Station\t"+args[i]);
         }
         TransactionManager tm = new TransactionManager(args);
+        tm.prepare("create table \"t1\" ( id integer );");
+        tm.doFinal();
     }
 }

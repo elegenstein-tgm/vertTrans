@@ -24,7 +24,7 @@ public class ComIPC {
         try {
             Socket ct = new Socket(toIP, toPort);
             PrintWriter printWriter = new PrintWriter(ct.getOutputStream());
-            printWriter.format("%s %td/%tm/%ty %tl:%tM%tp§%s", ct.getInetAddress().toString(), c, c, c, c, c, c, msg);
+            printWriter.format("%s %td/%tm/%ty %tl:%tM%tp§%s", ct.getLocalAddress().toString().replace("/","").split(":")[0], c, c, c, c, c, c, msg);
             printWriter.flush();
             printWriter.close();
             ct.close();
