@@ -66,10 +66,17 @@ public class Station {
             e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
+            callFailed();
         }
     }
 
     public void parseInput(String rxMsg){
+        if (rxMsg.equals(ConstraintsAndUtils.GLOBAL_HALT)){
+            System.out.println(String.format("%td-%tm-%ty Halting...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+            logger.write(String.format("%td-%tm-%ty Doing Halt...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+            doHalt();
+            return;
+        }
         if (rxMsg.equals("abort;")){
             System.out.println(String.format("%td-%tm-%ty Doing Rollback...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
             logger.write(String.format("%td-%tm-%ty Doing Rollback...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
@@ -78,7 +85,7 @@ public class Station {
         }
         if (rxMsg.equals("commit;")){
             System.out.println(String.format("%td-%tm-%ty Doing Commit...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
-            logger.write(String.format("%td-%tm-%ty Doing Commit...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+            logger.write(String.format("%td-%tm-%ty Doing Commit...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
             doCommit();
 
             return;
@@ -89,12 +96,11 @@ public class Station {
     }
 
     private void doSql(String sql) {
-        /* todo uncomment
         if (this.hasCurrentSql) {
             callFailed();
             return;
         }
-        */
+
         try {
             con.setAutoCommit(false);
             stmt = con.createStatement();
@@ -103,17 +109,32 @@ public class Station {
         } catch (SQLException e) {
             e.printStackTrace();
             logger.print(e.getMessage());
+            callFailed();
+            return;
         }
         this.hasCurrentSql = true;
         callReady();
     }
 
+    private void doHalt(){
+        try {
+            con.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        isListening =false;
+        logger.close();
+    }
+
     private void doRollback(){
         try {
             con.rollback();
+            callAck();
         } catch (SQLException e) {
             e.printStackTrace();
             logger.print(e.getMessage());
+            callFailed();
+
         }
         this.hasCurrentSql = false;
     }
@@ -121,21 +142,31 @@ public class Station {
     private void doCommit(){
         try {
             con.commit();
+            callAck();
         } catch (SQLException e) {
             e.printStackTrace();
             logger.print(e.getMessage());
+            callFailed();
+
         }
         this.hasCurrentSql = false;
     }
 
     private void callFailed(){
         logger.write(String.format("%td-%tm-%ty Calling Failed...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+        System.err.println(String.format("%td-%tm-%ty Calling Failed...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
         ComIPC.send(ipTransMan,ConstraintsAndUtils.COM_PORT,"failed;");
     }
 
     private void callReady(){
         logger.write(String.format("%td-%tm-%ty Calling Ready...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+        System.err.println(String.format("%td-%tm-%ty Calling Ready...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
         ComIPC.send(ipTransMan, ConstraintsAndUtils.COM_PORT, "ready;");
+    }
+    private void callAck(){
+        logger.write(String.format("%td-%tm-%ty Calling Ack...",Calendar.getInstance(),Calendar.getInstance(),Calendar.getInstance()));
+        System.err.println(String.format("%td-%tm-%ty Calling Ack...", Calendar.getInstance(), Calendar.getInstance(), Calendar.getInstance()));
+        ComIPC.send(ipTransMan, ConstraintsAndUtils.COM_PORT, "ack;");
     }
 
     class RxThread extends Thread{
@@ -143,7 +174,7 @@ public class Station {
             while (isListening){
                 try {
                     Socket sock = serverSocket.accept();
-                    System.out.println(sock.getRemoteSocketAddress().toString());
+                    //System.out.println(sock.getRemoteSocketAddress().toString());
                     BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
                     String rx="", tmp;
                     while ((tmp = br.readLine()) != null){
